@@ -21,21 +21,32 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  defaultNetwork: "mainnet",
+  defaultNetwork: "mumbai",
   networks: {
     mumbai: {
-      url: "https://rpc-mumbai.maticvigil.com",
-      accounts: [ETH_PRIVATE_KEY]
+      url: "https://matic-testnet-archive-rpc.bwarelabs.com",
+      accounts: [ETH_PRIVATE_KEY],
+      // gasPrice: 20e9,
+      // // how much compute you need
+      // gas: 25e6,
     },
     mainnet: {
       url: 'https://polygon-rpc.com/',
       accounts: [ETH_PRIVATE_KEY],
       // how much you pay (in wei) per "compute unit"
       gasPrice: 20e9,
-      // how much compute you need
-      gas: 25e9,
+      // // how much compute you need
+      gas: 25e6,
     },
   },
+  gasReporter: {
+    // enabled: process.env.ETH_REPORT_GAS !== undefined,
+    currency: "USD",
+    token: "MATIC",
+    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
+    gasPriceApi:
+        "https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice",
+},
   rpc: {
     txfeecap: 0
   },

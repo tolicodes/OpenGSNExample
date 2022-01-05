@@ -7,7 +7,7 @@ const {
 module.exports.deployPaymaster = async () => {
 
   // Paymaster funds transactions
-  const Paymaster = await hre.ethers.getContractFactory("NovelPaymaster2");
+  const Paymaster = await hre.ethers.getContractFactory("NovelPaymaster");
 
   // Relay hub is starting the transaction (asks the NovelContract if the payment should
   // go through, and then passes on the transaction to the forwarder
@@ -20,7 +20,10 @@ module.exports.deployPaymaster = async () => {
   // the forwarder is the address of the contract that talks to the NovelCollection contract
   // it makes the gas payment for the user
   // collects money from the paymaster
-  paymaster.setTrustedForwarder(GSN_TRUSTED_FORWARDER_ADDRESS);
+  const setTrustedForwarderTxn = await paymaster.setTrustedForwarder(GSN_TRUSTED_FORWARDER_ADDRESS);
+  await setTrustedForwarderTxn.wait();
+
+  console.log('paymaster created', paymaster);
 
   return {
     paymasterContractAddress: paymaster.address,

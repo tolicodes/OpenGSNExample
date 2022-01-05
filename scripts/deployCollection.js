@@ -28,12 +28,14 @@ async function main({
     }
   }
 
+  return;
+
   const {
     forwarderAddress,
     paymasterContractAddress
   } = paymasterDetails;
 
-  const NovelPaymaster = await hre.ethers.getContractFactory("NovelPaymaster2");
+  const NovelPaymaster = await hre.ethers.getContractFactory("NovelPaymaster");
 
   const novelPaymaster = NovelPaymaster.attach(paymasterContractAddress)
 
