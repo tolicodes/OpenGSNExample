@@ -13,6 +13,14 @@ import "./NovelColection.sol";
 // NOTE: Do NOT use this contract on a mainnet: it accepts anything, so anyone can "grief" it and drain its account
 
 contract NovelPaymaster is BasePaymaster {
+
+    address public owners;
+
+	modifier checkOwner {
+        require(msg.sender == owners || tx.origin == owners, "You're not the owner of the contract");
+        _;
+    }
+
 	constructor(address _relayHubAddress) {
 		setRelayHub(IRelayHub(_relayHubAddress));
 	}
@@ -30,7 +38,7 @@ contract NovelPaymaster is BasePaymaster {
 	mapping (address=>bool) public targetWhitelist;
 
 	// this is how we mark a contract as one we will pay for
-	function enableContract(address target) external onlyOwner {
+	function enableContract(address target) external checkOwner {
 		targetWhitelist[target] = true;
 	}
 
@@ -52,8 +60,12 @@ contract NovelPaymaster is BasePaymaster {
 		(signature, approvalData, maxPossibleGas);
 		require(targetWhitelist[relayRequest.request.to], "This Target is not added!");
 
+        // Only work on mint function
+        NovelCollection novelCollection = NovelCollection(relayRequest.request.to);
+		bytes4 methodSig = GsnUtils.getMethodSig(relayRequest.request.data);
+		require(methodSig == novelCollection.mint.selector, "you can only call mint function" );
+        
 		// TODO: confirm that this actually works (checks that attempted transaction has a quantity that is whitelisted)
-		NovelCollection novelCollection = NovelCollection(relayRequest.request.to);
 		uint32 quantity = extractMintCountFromCall(relayRequest.request.data);
 		require(novelCollection.canMintAmount(relayRequest.request.from, quantity));
 

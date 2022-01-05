@@ -34,8 +34,8 @@ contract NovelCollection is Ownable, ERC721Enumerable, BaseRelayRecipient {
         uint32 _supplyCap,
         // string memory _metadataProofHash,
         string memory __cURI,
-        address _forwarder
-        // address payable _paymasterContractAddress
+        address _forwarder,
+        address payable _paymasterContractAddress
     ) ERC721(_name, _symbol) {
         supplyCap = _supplyCap;
         // metadataProofHash = _metadataProofHash;
@@ -43,8 +43,8 @@ contract NovelCollection is Ownable, ERC721Enumerable, BaseRelayRecipient {
 
         _setTrustedForwarder(_forwarder);
     
-        // NaivePaymaster novelPaymaster = NaivePaymaster(_paymasterContractAddress);
-        // novelPaymaster.enableContract(address(this));
+        NovelPaymaster novelPaymaster = NovelPaymaster(_paymasterContractAddress);
+        novelPaymaster.enableContract(address(this));
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
