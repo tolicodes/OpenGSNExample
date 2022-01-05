@@ -1,5 +1,6 @@
 // More info on GSN: https://docs.opengsn.org/#architecture
 const { existsSync, readFileSync, writeFileSync } = require("fs");
+const { task } = require("hardhat/config");
 const { join } = require("path");
 
 const deploy = async (
@@ -92,5 +93,13 @@ task("fill-paymaster", "Adds native token to paymaster")
     if (parseFloat(eth) < 0.01) throw new Error("Minimum amount is 0.01 ETH");
     const output = await fill(hre, eth);
     console.log("Paymaster refilled");
+  });
+
+task("check-paymaster", "Check that a contract is whitelisted on the paymaster")
+  .addParam("address", "address of the contract")
+  .setAction(async ({ address }, hre) => {
+    const paymaster = await get(hre);
+    const isWhitelisted = await paymaster.isEnabledContract(address);
+    console.log("isWhitelisted", isWhitelisted);
   });
 module.exports = { deploy, fill, get };
