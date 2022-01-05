@@ -1,24 +1,30 @@
-# Basic Sample Hardhat Project
+# Enabling Paymaster-Based Contracts
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
+## Installation
 
-Try running some of the following tasks:
-
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-node scripts/sample-script.js
-npx hardhat help
+```bash
+yarn
+Add private key as environment variable
+cp .env.template .env
+#Edit env to reflect your proper key
+code .env 
 ```
 
+## Deploy the paymaster
+**Precondition:** .env must contain a working wallet that will be the owner of paymaster
+```bash
+yarn hardhat deploy-paymaster
+```
 
-## Paymaster
-`0xE78DE288593A8ADDDab24D809E1B2129F09C335c`
+## Fill the paymaster
+**Note:** The paymaster has to have money to operate properly. The `eth` argument is required to send money it can use for gas station relays 
+```bash
+yarn hardhat fill-paymaster --eth 0.1
+```
 
-`https://ennf00de38owpbo.m.pipedream.net`
+## Deploy the collection
 
-Forwarder:
-`0x4d4581c01A457925410cd3877d17b2fd4553b2C5`
+
+## TODO
+1. Add mainnet relayhub and forwarders
+2. Save paymaster address to storage-  probably inside this repo. 
