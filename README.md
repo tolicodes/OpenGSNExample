@@ -30,11 +30,17 @@ yarn hardhat fill-paymaster --eth 0.1
 ``` 
 
 ## Deploy the collection
-**Does not work yet**
 ```bash
 yarn hardhat deploy-contract --symbol TEST --name "Test collection"
 ``` 
 
+## Confirm the collection is paid-for by the paymaster
+```bash
+yarn hardhat check-paymaster --address 0x....
+```
+
+
 ## TODO
 1. Add mainnet relayhub and forwarders
-2. Save paymaster address to storage-  probably inside this repo. 
+2. **DONE** Save paymaster address to storage-  probably inside this repo. 
+3. Test on mainnet
