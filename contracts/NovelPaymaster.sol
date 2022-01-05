@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 // SPDX-License-Identifier: MIT OR Apache-2.0
 import "@opengsn/contracts/src/BasePaymaster.sol";
 import "@opengsn/contracts/src/interfaces/IRelayHub.sol";
-import "./NovelColection.sol";
+import "./NovelCollection.sol";
 
 
 // accept everything.
@@ -12,7 +12,7 @@ import "./NovelColection.sol";
 //
 // NOTE: Do NOT use this contract on a mainnet: it accepts anything, so anyone can "grief" it and drain its account
 
-contract NovelPaymaster is BasePaymaster {
+contract NovelPaymaster2 is BasePaymaster {
 	constructor(address _relayHubAddress) {
 		setRelayHub(IRelayHub(_relayHubAddress));
 	}

@@ -10,41 +10,76 @@ import "./NovelPaymaster.sol";
 // This is done so that OpenSea can cover Matic gas costs: https://docs.opensea.io/docs/polygon-basic-integration
 // import "./MetaTransactions.sol";
 
+// We are using OpenGSN to do the transactions (gasless to the customer)
 contract NovelCollection is Ownable, ERC721Enumerable, BaseRelayRecipient {
+    // string functionality
     using Strings for uint256;
 
+    // when reveal() is called it emits an event
     event Revealed();
 
+    // increment token IDs, every time a new one is minted
     uint256 private _nextTokenId = 0;
+    
+    // base URI of token specific metadata
     string private _btURI;
+
+    // URI for collection metadata
     string private _cURI;
+
+    // which wallets are allowed to mint a token
     mapping(address => uint32) whitelist;
+
+    // saving all the minting wallet addresses
     mapping(address => uint32) mintPerCustomer;
 
+    // 0 means collection is NOT revealed, other numbers meen it is
     uint256 public startingIndex = 0;
 
+    // the version of the recepient (the collection contract)
+    // should we same version number as NovelPaymaster#versionPaymaster
     string public override versionRecipient = "2.2.3+novel-irelayrecipient";
 
+    // max amount of token
     uint32 public immutable supplyCap;
-    // string public metadataProofHash;
+    
+    // proves that metadata is valid (ex: like an MD5 hash of the metadata json)
+    string public metadataProofHash;
 
     constructor(
+        // Name of collection (ex: ToliCollection)
         string memory _name,
+        
+        // The symbol of the token (ex: TOLI)
         string memory _symbol,
+
+        // Max amount of that token
         uint32 _supplyCap,
-        // string memory _metadataProofHash,
+
+        // proves that metadata is valid (ex: like an MD5 hash of the metadata json)
+        string memory _metadataProofHash,
+
+        // URI for collection metadata
         string memory __cURI,
+        
+        // GSN Forwarder address (for gasless txns)
         address _forwarder
+
+        // address of the GSN Paymaster
+        // doesn't work right now
         // address payable _paymasterContractAddress
     ) ERC721(_name, _symbol) {
         supplyCap = _supplyCap;
-        // metadataProofHash = _metadataProofHash;
+        metadataProofHash = _metadataProofHash;
         _cURI = __cURI;
 
         _setTrustedForwarder(_forwarder);
     
-        // NaivePaymaster novelPaymaster = NaivePaymaster(_paymasterContractAddress);
-        // novelPaymaster.enableContract(address(this));
+        // // Doesn't work right now
+        // // NovelPaymaster novelPaymaster = NovelPaymaster(_paymasterContractAddress);
+        // _paymasterContractAddress.delegatecall(
+        //     abi.encodeWithSignature("enableContract(address)", address(this))
+        // );
     }
 
     function _baseURI() internal view virtual override returns (string memory) {

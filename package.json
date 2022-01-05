@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@opengsn/contracts": "^2.2.4",
-    "@openzeppelin/contracts": "^4.4.1"
+    "@openzeppelin/contracts": "^4.4.1",
+    "dotenv": "^10.0.0"
   }
 }

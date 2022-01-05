@@ -7,3 +7,8 @@ typechain
 #Hardhat files
 cache
 artifacts
+
+.env.development
+
+# in production this will be stored in a DB or smth
+paymaster.json
