@@ -5,7 +5,8 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@opengsn/contracts/src/BaseRelayRecipient.sol";
-import "./NovelPaymaster.sol";
+
+// import "./NovelPaymaster.sol";
 
 // This is done so that OpenSea can cover Matic gas costs: https://docs.opensea.io/docs/polygon-basic-integration
 // import "./MetaTransactions.sol";
@@ -20,7 +21,7 @@ contract NovelCollection is Ownable, ERC721Enumerable, BaseRelayRecipient {
 
     // increment token IDs, every time a new one is minted
     uint256 private _nextTokenId = 0;
-    
+
     // base URI of token specific metadata
     string private _btURI;
 
@@ -42,39 +43,35 @@ contract NovelCollection is Ownable, ERC721Enumerable, BaseRelayRecipient {
 
     // max amount of token
     uint32 public immutable supplyCap;
-    
+
     // proves that metadata is valid (ex: like an MD5 hash of the metadata json)
     string public metadataProofHash;
 
     constructor(
         // Name of collection (ex: ToliCollection)
         string memory _name,
-        
         // The symbol of the token (ex: TOLI)
         string memory _symbol,
-
         // Max amount of that token
         uint32 _supplyCap,
-
         // proves that metadata is valid (ex: like an MD5 hash of the metadata json)
         string memory _metadataProofHash,
-
         // URI for collection metadata
         string memory __cURI,
-        
         // GSN Forwarder address (for gasless txns)
         address _forwarder
-
+    )
         // address of the GSN Paymaster
         // doesn't work right now
         // address payable _paymasterContractAddress
-    ) ERC721(_name, _symbol) {
+        ERC721(_name, _symbol)
+    {
         supplyCap = _supplyCap;
         metadataProofHash = _metadataProofHash;
         _cURI = __cURI;
 
         _setTrustedForwarder(_forwarder);
-    
+
         // // Doesn't work right now
         // // NovelPaymaster novelPaymaster = NovelPaymaster(_paymasterContractAddress);
         // _paymasterContractAddress.delegatecall(
@@ -92,7 +89,7 @@ contract NovelCollection is Ownable, ERC721Enumerable, BaseRelayRecipient {
 
     function contractURI() public pure returns (string memory) {
         return "https://ennf00de38owpbo.m.pipedream.net";
-    } 
+    }
 
     function setWhitelistedAmount(
         address[] memory customers,
@@ -127,7 +124,11 @@ contract NovelCollection is Ownable, ERC721Enumerable, BaseRelayRecipient {
         }
     }
 
-    function canMintAmount(address customer, uint32 amount) public view returns (bool) {
+    function canMintAmount(address customer, uint32 amount)
+        public
+        view
+        returns (bool)
+    {
         return mintableAmount(customer) >= amount;
     }
 
