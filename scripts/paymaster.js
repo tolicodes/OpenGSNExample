@@ -30,7 +30,6 @@ const deploy = async (
 
   return {
     paymasterContractAddress: paymaster.address,
-    forwarderAddress: GSN_TRUSTED_FORWARDER_ADDRESS,
   };
 };
 
@@ -48,10 +47,12 @@ const fill = async (hre, eth, address) => {
   await txHash.wait();
   return true;
 };
+const getPath = () =>
+  join(__dirname, "..", `paymaster.${hre.network.name}.json`);
 
 const get = async (hre, address) => {
   if (!address) {
-    const path = join(__dirname, "..", "paymaster.json");
+    const path = getPath();
     if (!existsSync(path))
       throw new Error(
         "Could not find paymaster.json - try running hardhat deploy-paymaster"
@@ -76,7 +77,7 @@ task("deploy-paymaster", "Deploys the paymaster", async (taskArgs, hre) => {
     GSN_TRUSTED_FORWARDER_ADDRESS:
       hre.network.config.GSN_TRUSTED_FORWARDER_ADDRESS,
   });
-  const path = join(__dirname, "..", "paymaster.json");
+  const path = getPath();
   writeFileSync(path, JSON.stringify(output, null, 2));
   console.log("Paymaster deployed at", output.paymasterContractAddress);
 });
