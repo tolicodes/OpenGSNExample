@@ -2,6 +2,7 @@ require("@nomiclabs/hardhat-waffle");
 
 require("dotenv").config();
 require("./scripts/paymaster");
+require("./scripts/collection");
 const { ETH_PRIVATE_KEY } = process.env;
 // console.log(ETH_PRIVATE_KEY);
 // process.exit();
