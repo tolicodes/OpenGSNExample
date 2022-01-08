@@ -4,35 +4,49 @@ import { join } from "path";
 import { HardhatConfig, HardhatRuntimeEnvironment } from "hardhat/types";
 import { task } from "hardhat/config";
 import { PaymasterConfig } from "./paymasterConfig";
+
 type PaymasterConstructorArguments = [RELAY_HUB_ADDRESS: string];
+
+interface IDeployParams { 
+  RELAY_HUB_ADDRESS: string; 
+  GSN_TRUSTED_FORWARDER_ADDRESS: string 
+};
+
 const deploy = async (
+  // context that HardHat is giving us
   hre: HardhatRuntimeEnvironment,
   {
     RELAY_HUB_ADDRESS,
     GSN_TRUSTED_FORWARDER_ADDRESS,
-  }: { RELAY_HUB_ADDRESS: string; GSN_TRUSTED_FORWARDER_ADDRESS: string }
+  }: IDeployParams
 ) => {
   if (!hre) throw new Error("hre is required");
   if (!RELAY_HUB_ADDRESS) throw new Error("Relay hub address is required");
   if (!GSN_TRUSTED_FORWARDER_ADDRESS)
     throw new Error("GSN trusted forwarder address is required");
+  
   // Paymaster funds transactions
+  // ethers interacts with ethereum provider
+  // hardhat makes web3 available without a browser
+  // also has a local blockchain network to test w/o 
+  // testnet
   const Paymaster = await hre.ethers.getContractFactory("NovelPaymaster");
 
-  // Relay hub is starting the transaction (asks the NovelContract if the payment should
-  // go through, and then passes on the transaction to the forwarder
-  // The paymaster holds and hands out the gas needed for the transactions
+  // Relay hub is starting the transaction (asks the NovelPaymaster if the payment should
+  // go through (preRelayedCall), and then passes on the transaction to the forwarder
+  // The NovelPaymaster holds and hands out the gas needed for the transactions
   const paymaster = await Paymaster.deploy(RELAY_HUB_ADDRESS);
 
   // wait for it to be deployed
   await paymaster.deployed();
 
-  // the forwarder is the address of the contract that talks to the NovelCollection contract
-  // it makes the gas payment for the user
-  // collects money from the paymaster
-
-  const tx = await paymaster.setTrustedForwarder(GSN_TRUSTED_FORWARDER_ADDRESS);
-  await tx.wait();
+  // The forwarder is the address of the contract that talks to the NovelCollection contract
+  // It makes the gas payment for the user, and collects money from the paymaster
+  // TODO: Put in constructor
+  const setTrustedForwarderTxn = await paymaster.setTrustedForwarder(GSN_TRUSTED_FORWARDER_ADDRESS);
+  
+  // wait for that txn to complete
+  await setTrustedForwarderTxn.wait();
 
   return {
     address: paymaster.address,
