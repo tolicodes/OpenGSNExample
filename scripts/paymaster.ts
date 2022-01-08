@@ -12,6 +12,7 @@ interface IDeployParams {
 
 type PaymasterConstructorArguments = [RELAY_HUB_ADDRESS: string, GSN_TRUSTED_FORWARDER_ADDRESS: string];
 
+// Deploys Paymaster
 const deploy = async (
   // context that HardHat is giving us
   hre: HardhatRuntimeEnvironment,
@@ -47,71 +48,111 @@ const deploy = async (
   };
 };
 
+// Refills paymaster gas
 export const fill = async (
   hre: HardhatRuntimeEnvironment,
-  eth: string,
-  address?: string
+  // How much gas to put in
+  ethToTransfer: string,
+  // Address of the Paymaster
+  // If not specified, fills Paymaster from config file
+  optionalPaymasterAddress?: string
 ) => {
-  const paymaster = await get(hre, address);
-  console.log("sending to paymasterAddress", paymaster.address);
-  // process.exit();
-  const params = {
-    to: paymaster.address,
-    value: hre.ethers.utils.parseUnits(eth, "ether").toHexString(),
-  };
+  // if there is no paymasterAddress as param, then asks HRE
+  // for the address
+  const paymaster = await get(hre, optionalPaymasterAddress);
+
+  const amountToSendInWei = hre.ethers.utils.parseUnits(ethToTransfer, "ether")
+  const amountToTransferAsHex = amountToSendInWei.toHexString();
+  
+  const paymasterAddress = paymaster.address;
+  console.log("sending to paymasterAddress", {
+    paymasterAddress,
+    amountToSendInWei,
+    amountToTransferAsHex,
+  });
+  
+  // pulls from accounts (usually we have one, this just takes
+  // the last one)
   const lastSigner = (await hre.ethers.getSigners()).pop();
   if (!lastSigner) throw new Error("no signers available");
-  const txHash = await lastSigner.sendTransaction(params);
-  await txHash.wait();
+
+  const transferMoneyTxnParams = {
+    to: paymasterAddress,
+    value: amountToTransferAsHex,
+  };
+
+  console.log('sending Transaction - transferMoney', {
+    transferMoneyTxnParams,
+  });
+
+  const transferMoneyTxn = await lastSigner.sendTransaction(transferMoneyTxnParams);
+  
+  console.log('Waiting for transferMoneyTxn to complete')
+  await transferMoneyTxn.wait();
+
+  console.log('transferMoneyTxn was successful!')
+  
   return true;
 };
-const getPath = (hre: HardhatRuntimeEnvironment) =>
+
+// get the path for paymaster details on local file system
+// in prod, this will be in a DB or secrets manger (K8S)
+const getPaymasterJSONPath = (hre: HardhatRuntimeEnvironment) =>
   join(__dirname, "..", `paymaster.${hre.network.name}.json`);
 
-export const get = async (hre: HardhatRuntimeEnvironment, address?: string) => {
-  if (!address) {
-    const path = getPath(hre);
-    if (!existsSync(path))
+
+// Gets the paymaster ethers object from json file or passed in address
+export const get = async (hre: HardhatRuntimeEnvironment, paymasterAddress?: string) => {
+  if (!paymasterAddress) {
+    // get the JSON file containing paymaster address
+    const path = getPaymasterJSONPath(hre);
+
+    if (!existsSync(path)) {
       throw new Error(
         "Could not find paymaster.json - try running hardhat deploy-paymaster"
       );
+    }
+
     const json = readFileSync(path, "utf8");
-    const obj = JSON.parse(json);
-    if (!obj.address)
+    const paymasterData = JSON.parse(json);
+    if (!paymasterData.address)
       throw new Error(
         "Could not read paymaster.json - try running hardhat deploy-paymaster"
       );
-    address = obj.address;
+      paymasterAddress = paymasterData.address;
   }
-  if (!address) throw new Error("Paymaster address is required");
+
+  if (!paymasterAddress) throw new Error("Paymaster address is required");
+
+  // get the paymaster contract ethers object
   const Paymaster = await hre.ethers.getContractFactory("NovelPaymaster");
-  const paymaster = await Paymaster.attach(address);
+  const paymaster = await Paymaster.attach(paymasterAddress);
   return paymaster;
 };
 
+// Verifies contract with PolygonScan (adds green checkmark)
 export const verify = async (
   hre: HardhatRuntimeEnvironment,
-  address: string,
-  constructorArguments: PaymasterConstructorArguments
+  // the paymaster we want to verify on PolygonScan
+  paymasterAddress: string,
+  paymasterConstructorArguments: PaymasterConstructorArguments
 ) => {
-  const [RELAY_HUB_ADDRESS, GSN_TRUSTED_FORWARDER_ADDRESS] = constructorArguments;
+  const [RELAY_HUB_ADDRESS, GSN_TRUSTED_FORWARDER_ADDRESS] = paymasterConstructorArguments;
   if (!RELAY_HUB_ADDRESS) throw new Error("Relay hub address is required");
   if(!GSN_TRUSTED_FORWARDER_ADDRESS) throw new Error("GSN trusted forwarder address is required");
+
   try {
+    // subtask provided by etherscan (built in)
     const output = await hre.run("verify:verify", {
-      address,
-      constructorArguments,
+      address: paymasterAddress,
+      constructorArguments: paymasterConstructorArguments,
     });
     console.log("Verification successful: ", output);
   } catch (e) {
-    // console.log("There was an error in the verification process");
-    // console.log((e as Error).message);
-    // console.log(Object.keys(e as Error));
-    // console.log("Name", (e as Error).name);
-    // console.log("--------");
     const message = (e as Error).message;
+    
+    // if already verified, that's fine, don't fail
     if (message.includes("Reason: Already Verified")) {
-      //This is fine
       console.log("Verification successful: Already verified");
     } else {
       throw e;
@@ -120,22 +161,34 @@ export const verify = async (
 };
 
 task("deploy-paymaster", "Deploys the paymaster")
-  .addOptionalParam("verify", "Verify the contract after deploying")
+
+  .addOptionalParam("verify", "Should we verify the contract after deploying? (boolean)")
 
   .setAction(async ({ verify: doVerify }, hre) => {
     const config = hre.config as PaymasterConfig<HardhatConfig>;
-    const output = await deploy(hre, {
+    
+    // run the deploy
+    const deployOutput = await deploy(hre, {
       RELAY_HUB_ADDRESS:
         config.paymasterInfo[hre.network.name].RELAY_HUB_ADDRESS,
       GSN_TRUSTED_FORWARDER_ADDRESS:
         config.paymasterInfo[hre.network.name].GSN_TRUSTED_FORWARDER_ADDRESS,
     });
-    const path = getPath(hre);
-    writeFileSync(path, JSON.stringify(output, null, 2));
-    console.log("Paymaster deployed at", output.address);
+
+    const path = getPaymasterJSONPath(hre);
+    
+    // if the deploy is successful, we write the output to a file, 
+    // so that we don't deploy multiple paymasters
+    // in production, this will be stored in a DB or secrets manager
+    writeFileSync(path, JSON.stringify(deployOutput, null, 2));
+
+    console.log("Paymaster deployed at", deployOutput.address);
+    
+    // if we specify that we want to verify on Polygon scan,
+    // then do verification
     if (doVerify) {
       try {
-        await verify(hre, output.address, output.constructorArguments);
+        await verify(hre, deployOutput.address, deployOutput.constructorArguments);
       } catch (e) {
         console.warn("Could not verify paymaster", (e as Error).message);
       }
@@ -144,18 +197,21 @@ task("deploy-paymaster", "Deploys the paymaster")
 
 task("fill-paymaster", "Adds native token to paymaster")
   .addParam(
-    "eth",
+    "ethToTransfer",
     "quantity in eth to add to the paymaster account - fractions allowed"
   )
-  .setAction(async ({ eth }, hre: HardhatRuntimeEnvironment) => {
-    if (isNaN(parseFloat(eth))) throw new Error("eth must be a number");
-    if (parseFloat(eth) < 0.01) throw new Error("Minimum amount is 0.01 ETH");
-    const output = await fill(hre, eth);
+  .setAction(async ({ ethToTransfer }, hre: HardhatRuntimeEnvironment) => {
+    if (isNaN(parseFloat(ethToTransfer))) throw new Error("eth must be a number");
+    
+    // $.02-ish at current pricing (minimum to run account)
+    if (parseFloat(ethToTransfer) < 0.01) throw new Error("Minimum amount is 0.01 ETH");
+    
+    await fill(hre, ethToTransfer);
     console.log("Paymaster refilled");
   });
 
 task("check-paymaster", "Check that a contract is whitelisted on the paymaster")
-  .addParam("address", "address of the contract")
+  .addParam("collectionContractAddress", "address of the contract")
   .setAction(async ({ address }, hre: HardhatRuntimeEnvironment) => {
     const paymaster = await get(hre);
     const isWhitelisted = await paymaster.isEnabledContract(address);
@@ -166,10 +222,15 @@ task(
   "verify-paymaster",
   "Verify that a contract is whitelisted on the paymaster"
 )
-  .addOptionalParam("path", "path to the contract")
+  .addOptionalParam("path", "paymaster contract JSON path")
   .setAction(async ({ path }, hre) => {
-    if (!path) path = getPath(hre);
-    else if (!path.startsWith("/")) path = join(process.cwd(), path);
+    if (!path) {
+      path = getPaymasterJSONPath(hre);
+    }
+    else if (!path.startsWith("/")) {
+      path = join(process.cwd(), path);
+    }
+
     const { address, constructorArguments } = require(path);
     await verify(hre, address, constructorArguments);
   });
