@@ -45,8 +45,8 @@ export default {
   solidity: "0.8.0",
   etherscan: {
     apiKey: {
-      polygonMumbai: "S5K4GZ69KHVTMUV6JISJ7VZ5GHUKQZ64N6",
-      polygon: "S5K4GZ69KHVTMUV6JISJ7VZ5GHUKQZ64N6",
+      polygonMumbai: "GETYOUROWN",
+      polygon: "GETYOUROWN",
     },
   },
   paymasterInfo: {
