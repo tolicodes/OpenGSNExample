@@ -14,8 +14,9 @@ import "./NovelCollection.sol";
 contract NovelPaymaster is BasePaymaster {
     address public owners;
 
-    constructor(address _relayHubAddress) {
+    constructor(address _relayHubAddress, address _forwarderAddress) {
         setRelayHub(IRelayHub(_relayHubAddress));
+        setTrustedForwarder(_forwarderAddress);
     }
 
     /**
